@@ -4,6 +4,8 @@ import socket
 import signal
 from subprocess import call
 from os import unlink as delete
+from constants import *
+#import time
 
 interesting = {'rubber cap', 'terra mantle', 'steel boots', 'terra legs', 'dreaded cleaver', 'mercenary sword',
                'glooth amulet', 'giant shimmering pearl', 'terra hood', 'terra boots', 'glooth cape', 'glooth axe',
@@ -38,6 +40,43 @@ def quit(connection=None):
 
 signal.signal(signal.SIGTERM, lambda x, y: quit)
 
+#@profile
+def processLoot(loot):
+    #print 'before:',loot
+    loot = map(lambda x: x[1:], loot)
+    #print 'after:',loot
+    loot_amounts = dict()
+    #timeR = time.time()
+    for i in xrange(len(loot)):
+        loot_start = loot[i].split()[0]
+        if loot_start.isdigit():
+            loot[i] = loot[i][loot[i].find(' ') + 1:]
+            if loot[i] in pluralMap:
+                #print '[pluralMap]replaced ' + loot[i] + ' with ' + pluralMap[loot[i]]
+                loot[i] = pluralMap[loot[i]]
+            else:
+                for suffix in plural_suffixes:
+                    if loot[i].endswith(suffix):
+                        #print '[pluralSuffix]replaced ' + loot[i] + ' with ',
+                        loot[i].replace(suffix, plural_suffixes[suffix])
+                        #print loot[i]z
+                        break
+                else:
+                    for word in plural_words:
+                        if loot[i].startswith(word):
+                            #print '[pluralWords]replaced ' + loot[i] + ' with ',
+                            loot[i].replace(word, plural_words[word])
+                            #print loot[i]
+                            break
+            loot_amounts[loot[i]] = loot_start
+        else:
+            if loot_start in ['a', 'an']:
+                loot[i] = loot[i][loot[i].find(' ') + 1:]
+            loot_amounts[loot[i]] = '0'
+    return loot, loot_amounts
+    #print 'time spent reading loot: ', time.time() - timeR
+
+
 print 'Creating temporary socket file...'
 agent = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 agent.bind(sockfile)
@@ -50,6 +89,8 @@ try:
         full_msg = client.recv(1024)
         if full_msg == 'ATTACHED':
             notify('Flarelyzer', 'Started successfully!')
+            client.sendall('ACK')
+            continue
         client.sendall('ACK')
         typeInd = full_msg.find('Loot of ') + 8
         monsterInd = typeInd
@@ -57,27 +98,14 @@ try:
             monsterInd = typeInd + 2
         monster = full_msg[monsterInd:full_msg.rfind(":")]
         loot = full_msg[full_msg.rfind(':') + 1:].split(',')
-        loot = map(str.strip, loot)
-        loot_amounts = dict()
-        if loot[0] == 'nothing':
-            continue
-        for i in range(len(loot)):
-            loot_start = loot[i].split()[0]
-            if loot_start.isdigit():
-                loot[i] = loot[i][loot[i].find(' ') + 1:]
-                loot[i] = pluralMap[loot[i]]
-                loot_amounts[loot[i]] = int(loot_start)
-            else:
-                if loot_start in ['a', 'an']:
-                    loot[i] = loot[i][loot[i].find(' ') + 1:]
-                loot_amounts[loot[i]] = 0
+        loot, loot_amounts = processLoot(loot)
 
         valuables = interesting.intersection(loot)
         if valuables:
             lootmsg = ''
             for v in valuables:
-                if loot_amounts[v]:
-                    lootmsg += str(loot_amounts[v]) + ' '
+                if loot_amounts[v] != '0':
+                    lootmsg += loot_amounts[v] + ' '
                 lootmsg += v.title() + ', '
             else:
                 lootmsg = lootmsg[:-2]

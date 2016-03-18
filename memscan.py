@@ -107,8 +107,10 @@ def main():
 				if not res:
 					quit()
 				for full_msg in res['item_drops']:
+					#iniW = time.time()
 					notifier.sendall(full_msg)
 					response = notifier.recv(8)
+					#print 'time spent waiting for agent: ', time.time()-iniW
 					if response == 'QUIT':
 						print 'stopping memory scan upon request'
 						quit()

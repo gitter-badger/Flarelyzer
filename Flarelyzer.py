@@ -49,7 +49,7 @@ if not sudo or not all(map(check_installed, ['pypy', 'notify-send'])):
 	quit()  #if the requirements are not met
 
 try:
-	agent = Popen(['python2.7', 'agent.py'])
+	agent = Popen(['pypy', 'agent.py'])
 	while not os.path.exists(sockfile):
 		time.sleep(0.05)  #probably a hack
 	scanner = Popen([sudo, 'pypy', 'memscan.py'])

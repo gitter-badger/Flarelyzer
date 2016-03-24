@@ -5,9 +5,8 @@ import signal
 from subprocess import call
 from os import unlink as delete
 from constants import *
-#import time
 
-interesting = {'rubber cap', 'terra mantle', 'steel boots', 'terra legs', 'dreaded cleaver', 'mercenary sword',
+interesting = {'rubber cap', 'terra mantle', 'steel boots', 'terra legs', 'dreaded cleaver', "butcher's axe", 'mercenary sword',
                'glooth amulet', 'giant shimmering pearl', 'terra hood', 'terra boots', 'glooth cape', 'glooth axe',
                'glooth club', 'glooth blade', 'glooth bag', 'green gem', 'cheese'
                }
@@ -21,18 +20,18 @@ with open('Database/pluralMap.csv', mode='r') as pluralFile:
 
 sockfile = '/tmp/flarelyzer.sock'
 
-
 def notify(title, msg):
     call(['notify-send', '--urgency=low', '--expire-time=' + str(notif_time * 1000), title, msg])
 
 
-def quit(connection=None):
-    if connection is not None:
-        print 'stopping memory scanner'
-        connection.sendall('QUIT')
-        connection.close()
-    notify('Flarelyzer', 'Closed!')
+def quit():
     global sockfile
+    try:
+        print 'stopping memory scanner'
+        client.sendall('QUIT')
+        client.close()
+    except: pass
+    notify('Flarelyzer', 'Closed!')
     delete(sockfile)
     print '--Notification agent closed--'
     sys.exit(0)
@@ -40,33 +39,25 @@ def quit(connection=None):
 
 signal.signal(signal.SIGTERM, lambda x, y: quit)
 
-#@profile
+
 def processLoot(loot):
-    #print 'before:',loot
     loot = map(lambda x: x[1:], loot)
-    #print 'after:',loot
     loot_amounts = dict()
-    #timeR = time.time()
     for i in xrange(len(loot)):
         loot_start = loot[i].split()[0]
         if loot_start.isdigit():
             loot[i] = loot[i][loot[i].find(' ') + 1:]
             if loot[i] in pluralMap:
-                #print '[pluralMap]replaced ' + loot[i] + ' with ' + pluralMap[loot[i]]
                 loot[i] = pluralMap[loot[i]]
             else:
                 for suffix in plural_suffixes:
                     if loot[i].endswith(suffix):
-                        #print '[pluralSuffix]replaced ' + loot[i] + ' with ',
                         loot[i].replace(suffix, plural_suffixes[suffix])
-                        #print loot[i]z
                         break
                 else:
                     for word in plural_words:
                         if loot[i].startswith(word):
-                            #print '[pluralWords]replaced ' + loot[i] + ' with ',
                             loot[i].replace(word, plural_words[word])
-                            #print loot[i]
                             break
             loot_amounts[loot[i]] = loot_start
         else:
@@ -74,8 +65,6 @@ def processLoot(loot):
                 loot[i] = loot[i][loot[i].find(' ') + 1:]
             loot_amounts[loot[i]] = '0'
     return loot, loot_amounts
-    #print 'time spent reading loot: ', time.time() - timeR
-
 
 print 'Creating temporary socket file...'
 agent = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -83,20 +72,20 @@ agent.bind(sockfile)
 agent.listen(1)
 print 'waiting for client...'
 client, addr = agent.accept()
-print 'connected!'
 try:
     while True:
         full_msg = client.recv(1024)
+        client.sendall('ACK')
         if full_msg == 'ATTACHED':
             notify('Flarelyzer', 'Started successfully!')
-            client.sendall('ACK')
             continue
-        client.sendall('ACK')
+        elif full_msg == 'NEXT':
+            continue
         typeInd = full_msg.find('Loot of ') + 8
         monsterInd = typeInd
         if full_msg[typeInd] == 'a':  # not an 'a' if its the loot of a boss
             monsterInd = typeInd + 2
-        monster = full_msg[monsterInd:full_msg.rfind(":")]
+        monster = full_msg[monsterInd:full_msg.rfind(':')]
         loot = full_msg[full_msg.rfind(':') + 1:].split(',')
         loot, loot_amounts = processLoot(loot)
 
@@ -109,12 +98,10 @@ try:
                 lootmsg += v.title() + ', '
             else:
                 lootmsg = lootmsg[:-2]
-            # print 'notifying: '+lootmsg
             notify(monster.title(), lootmsg)
 except Exception, e:
-    exc_type, exc_obj, exc_tb = sys.exc_info()
-    print 'Notification agent error ' + str(exc_type) + ' - at line: ' + str(exc_tb.tb_lineno)
-    client.sendall('QUIT')
+    pass
+    #exc_type, exc_obj, exc_tb = sys.exc_info()
+    #print 'Notification agent error ' + str(exc_type) + ' - at line: ' + str(exc_tb.tb_lineno)
 finally:
-    client.close()
     quit()

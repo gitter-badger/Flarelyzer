@@ -14,6 +14,7 @@ from subprocess import Popen, check_call
 
 
 agent = None
+scanner = None
 sockfile = '/tmp/flarelyzer.sock'
 try:
 	os.unlink(sockfile)  #Make sure the socket does not already exist
@@ -27,6 +28,8 @@ def quit():
 	global agent
 	if agent:
 		agent.terminate()
+	if scanner:
+		scanner.terminate()
 	print '==Terminated=='
 	sys.exit(0)
 signal.signal(signal.SIGTERM, lambda x, y: quit)

@@ -1,11 +1,9 @@
-import re
 import sys
 import socket
 from subprocess import check_output, CalledProcessError
 import signal
 #import time
 #TODO: stop opening and closing files with every iteration
-import time
 
 cached_loot_messages = set()
 notifier = None
@@ -34,10 +32,10 @@ def read_process_memory(pid):
 	mem_file = open("/proc/%s/mem" % pid, 'r')
 	try:
 		for line in maps_file.readlines():  # for each mapped region
-			#m = re.match(r'([0-9A-Fa-f]+)-([0-9A-Fa-f]+) ([-r])', line)
 			if line[line.find(' ')+1] == 'r':  # if this is a readable region
 				region = line.split()[0].split('-')
-				start, end = map(lambda x: int(x,16), region)
+				start = int(region[0],16)
+				end = int(region[1],16)
 				mem_file.seek(start)  # seek to region start
 				try: chunk = mem_file.read(end - start)  # read region contents
 				except: continue
@@ -107,15 +105,15 @@ def main():
 		notifier.sendall('ATTACHED')
 		while True:
 			try:
-				iniT = time.time()
+				#iniT = time.time()
 				res = read_process_memory(tibiaPID)
-				spent = time.time() - iniT
+				#spent = time.time() - iniT
 				if not res:
 					quit()
 				for full_msg in res['item_drops']:
 					notifier.sendall(full_msg)
 					notifier.recv(8)
-				print 'time spent reading memory: ', spent
+				#print 'time spent reading memory: ', spent
 				notifier.sendall('NEXT')
 				response = notifier.recv(8)
 				if response == 'QUIT':
@@ -130,4 +128,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-

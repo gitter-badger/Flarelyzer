@@ -25,17 +25,19 @@ def messages(chunk):
 
 #@profile
 def read_process_memory(pid):
-	global lootRe
 	item_drops = []
 	exp = dict()
 	maps_file = open("/proc/%s/maps" % pid, 'r')
 	mem_file = open("/proc/%s/mem" % pid, 'r')
 	try:
 		for line in maps_file.readlines():  # for each mapped region
-			if line[line.find(' ')+1] == 'r':  # if this is a readable region
+			mapping = line.rsplit(' ')[-1]
+			if (line[line.find(' ')+1] == 'r' and               # if this is a readable region
+				mapping not in ['(deleted)\n', '[vdso]\n'] and  # and not a shared object,
+				mapping[0] != '/'):                             # or mapped file
 				region = line.split()[0].split('-')
-				start = int(region[0],16)
-				end = int(region[1],16)
+				start = int(region[0], 16)
+				end = int(region[1], 16)
 				mem_file.seek(start)  # seek to region start
 				try: chunk = mem_file.read(end - start)  # read region contents
 				except: continue

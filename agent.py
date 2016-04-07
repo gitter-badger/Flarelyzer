@@ -6,9 +6,10 @@ from subprocess import call
 from os import unlink as delete
 from constants import *
 
-interesting = {'rubber cap', 'terra mantle', 'steel boots', 'terra legs', 'dreaded cleaver', "butcher's axe", 'mercenary sword',
-               'glooth amulet', 'giant shimmering pearl', 'terra hood', 'terra boots', 'glooth cape', 'glooth axe',
-               'glooth club', 'glooth blade', 'glooth bag', 'green gem', 'cheese'
+interesting = {'rubber cap', 'heat core', 'terra mantle', 'steel boots', 'terra legs', 'dreaded cleaver', "butcher's axe", 'mercenary sword',
+               'glooth amulet', 'giant shimmering pearl', 'terra amulet', 'terra hood', 'terra boots', 'glooth cape', 'glooth axe',
+               'glooth club', 'glooth blade', 'glooth bag', 'green gem', 'skull staff', 'cheese',
+               'crown armor', 'royal helmet', 'medusa shield','tower shield', 'giant sword'
                }
 
 notif_time = 2  # in seconds
